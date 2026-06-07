@@ -22,6 +22,7 @@ let supabase = null;
 if (useSupabase) {
   supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
   console.log('Supabase mode active.');
+  console.log('Supabase URL configured as:', process.env.SUPABASE_URL);
 } else {
   console.log('Local db.json mode active.');
 }
