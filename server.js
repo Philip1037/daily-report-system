@@ -364,9 +364,12 @@ app.post('/api/auth/login', async (req, res) => {
         .eq('username', username.trim())
         .eq('password', password)
         .maybeSingle();
+      if (error) {
+        console.error('Supabase login query error:', error);
+      }
       if (!error && data) user = data;
     } catch (e) {
-      console.error('Supabase login error:', e);
+      console.error('Supabase login exception:', e);
     }
   } else {
     const db = readDb();
