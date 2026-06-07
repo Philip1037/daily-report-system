@@ -1607,5 +1607,117 @@ textarea {
   }
 }
 
+/* ==================== EXPANDABLE REPORT CARDS ==================== */
+.report-content-container {
+  position: relative;
+  width: 100%;
+}
+
+.report-content-collapsed {
+  max-height: 180px;
+  overflow: hidden;
+}
+
+.report-content-collapsed::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: linear-gradient(to top, rgba(23, 23, 23, 0.95) 0%, rgba(23, 23, 23, 0) 100%);
+  pointer-events: none;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-fast);
+}
+
+.read-more-btn:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Multiple Image Previews & Galleries */
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.preview-card {
+  position: relative;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-card img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.preview-card-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.preview-card .remove-file-btn {
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Gallery inside report cards */
+.report-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.report-gallery-img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.report-gallery-img:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+
+
 
 

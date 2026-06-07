@@ -192,20 +192,16 @@
               </div>
 
               <div class="form-group">
-                <label><i data-lucide="image"></i> Attach Image (Optional)</label>
+                <label><i data-lucide="image"></i> Attach Images - Max 5 (Optional)</label>
                 <div id="dropzone" class="dropzone">
-                  <input type="file" id="reportImage" accept="image/*" class="file-input">
-                  <div class="dropzone-prompt">
+                  <input type="file" id="reportImage" accept="image/*" class="file-input" multiple>
+                  <div class="dropzone-prompt" id="dropzone-prompt-box">
                     <i data-lucide="upload-cloud" class="upload-icon"></i>
                     <p class="drop-text-primary">Drag & drop files or <span>browse</span></p>
-                    <p class="drop-text-secondary">PNG, JPG, JPEG or GIF up to 5MB</p>
+                    <p class="drop-text-secondary">PNG, JPG, JPEG or GIF up to 5MB (Max 5 files)</p>
                   </div>
-                  <div id="file-preview-container" class="file-preview hidden">
-                    <img id="image-preview" src="#" alt="Preview">
-                    <button type="button" id="btn-remove-file" class="remove-file-btn">
-                      <i data-lucide="x"></i>
-                    </button>
-                    <span id="file-name-text">filename.png</span>
+                  <div id="preview-grid" class="preview-grid hidden">
+                    <!-- Populated dynamically via JS -->
                   </div>
                 </div>
               </div>
@@ -490,6 +486,7 @@
                   <tr>
                     <th>Department Name</th>
                     <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="departments-list-body">

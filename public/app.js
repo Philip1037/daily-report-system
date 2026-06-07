@@ -4,7 +4,7 @@ let departments = [];
 let allReports = [];
 let myReports = [];
 let activeLoginRole = 'worker'; // 'worker' or 'management'
-let selectedFile = null;
+let selectedFiles = [];
 let users = [];
 let quill = null;
 let activeAnalyticsPeriod = '7d';
@@ -57,10 +57,7 @@ const navAnalytics = document.getElementById('nav-analytics');
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('reportImage');
 const dropzonePrompt = document.querySelector('.dropzone-prompt');
-const filePreviewContainer = document.getElementById('file-preview-container');
-const imagePreview = document.getElementById('image-preview');
-const btnRemoveFile = document.getElementById('btn-remove-file');
-const fileNameText = document.getElementById('file-name-text');
+// Dropzone elements handled dynamically via preview grid
 
 // Forms
 const reportForm = document.getElementById('report-form');
@@ -191,19 +188,14 @@ function setupEventListeners() {
     const dt = e.dataTransfer;
     const files = dt.files;
     if (files.length > 0) {
-      handleImageSelection(files[0]);
+      handleImagesSelection(files);
     }
   });
 
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
-      handleImageSelection(e.target.files[0]);
+      handleImagesSelection(e.target.files);
     }
-  });
-
-  btnRemoveFile.addEventListener('click', (e) => {
-    e.stopPropagation();
-    resetFileSelection();
   });
 
   // Worker Report Form Submit
@@ -467,35 +459,90 @@ function populateDepartmentDropdowns() {
 }
 
 // ==================== IMAGE DROPZONE HANDLING ====================
-function handleImageSelection(file) {
-  if (!file.type.startsWith('image/')) {
-    alert('Please select an image file only (PNG, JPG, JPEG, GIF, WEBP).');
-    return;
-  }
+function handleImagesSelection(files) {
+  const newFiles = Array.from(files);
   
-  if (file.size > 5 * 1024 * 1024) {
-    alert('Image file size must be less than 5MB.');
+  // Validate file types and sizes
+  for (const file of newFiles) {
+    if (!file.type.startsWith('image/')) {
+      alert(`File "${file.name}" is not an image (PNG, JPG, JPEG, GIF, WEBP).`);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`File "${file.name}" exceeds 5MB size limit.`);
+      return;
+    }
+  }
+
+  // Check limit (max 5)
+  if (selectedFiles.length + newFiles.length > 5) {
+    alert('You can upload a maximum of 5 images.');
     return;
   }
 
-  selectedFile = file;
-  fileNameText.textContent = file.name;
+  selectedFiles = selectedFiles.concat(newFiles);
+  renderPreviewGrid();
+}
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    imagePreview.src = e.target.result;
-    dropzonePrompt.classList.add('hidden');
-    filePreviewContainer.classList.remove('hidden');
-  };
-  reader.readAsDataURL(file);
+function renderPreviewGrid() {
+  const previewGrid = document.getElementById('preview-grid');
+  const dropzonePromptBox = document.getElementById('dropzone-prompt-box');
+  
+  if (selectedFiles.length === 0) {
+    previewGrid.innerHTML = '';
+    previewGrid.classList.add('hidden');
+    dropzonePromptBox.classList.remove('hidden');
+    return;
+  }
+
+  dropzonePromptBox.classList.add('hidden');
+  previewGrid.classList.remove('hidden');
+  previewGrid.innerHTML = '';
+
+  selectedFiles.forEach((file, index) => {
+    const card = document.createElement('div');
+    card.className = 'preview-card';
+    
+    const img = document.createElement('img');
+    img.alt = file.name;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'preview-card-name';
+    nameSpan.textContent = file.name;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-file-btn';
+    removeBtn.innerHTML = '<i data-lucide="x"></i>';
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeSelectedFile(index);
+    });
+
+    card.appendChild(img);
+    card.appendChild(nameSpan);
+    card.appendChild(removeBtn);
+    previewGrid.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function removeSelectedFile(index) {
+  selectedFiles.splice(index, 1);
+  renderPreviewGrid();
 }
 
 function resetFileSelection() {
-  selectedFile = null;
+  selectedFiles = [];
   fileInput.value = '';
-  imagePreview.src = '#';
-  filePreviewContainer.classList.add('hidden');
-  dropzonePrompt.classList.remove('hidden');
+  renderPreviewGrid();
 }
 
 // ==================== WORKER: REPORT SUBMISSION ====================
@@ -528,9 +575,9 @@ async function handleReportSubmit(e) {
   formData.append('employeeName', employeeName);
   formData.append('department', department);
   formData.append('content', content);
-  if (selectedFile) {
-    formData.append('reportImage', selectedFile);
-  }
+  selectedFiles.forEach(file => {
+    formData.append('reportImages', file);
+  });
 
   try {
     const res = await fetch('/api/reports', {
@@ -619,9 +666,7 @@ async function loadWorkerHistory() {
       const card = document.createElement('div');
       card.className = 'card glass report-card';
       
-      const imageTag = report.imagePath 
-        ? `<img src="${escapeHtml(report.imagePath)}" class="report-image-preview" alt="Attached proof of work" onclick="zoomImage('${escapeHtml(report.imagePath)}', 'Submitted by ${escapeHtml(report.employeeName)}')">`
-        : '';
+      const imageTag = renderReportImages(report.imagePath, `Submitted by ${report.employeeName}`);
 
       const formattedDate = new Date(report.createdAt).toLocaleString(undefined, {
         month: 'short',
@@ -640,13 +685,20 @@ async function loadWorkerHistory() {
         </div>
         <div class="report-content ql-editor" style="padding: 0; min-height: auto;">${report.content}</div>
         ${imageTag}
-        <div class="report-actions" style="margin-top: 1rem; display: flex; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
-          <button class="table-btn delete-btn" onclick="deleteWorkReport('${report.id}')">
+        <div class="report-actions" style="margin-top: 1rem; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
+          <a href="/api/reports/${report.id}/docx" class="table-btn edit-btn" style="text-decoration: none;" title="Download Word Document">
+            <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Word
+          </a>
+          <a href="/api/reports/${report.id}/pdf" class="table-btn edit-btn" style="text-decoration: none; margin-left: 8px;" title="Download PDF Document">
+            <i data-lucide="file-down" style="width: 14px; height: 14px;"></i> PDF
+          </a>
+          <button class="table-btn delete-btn" style="margin-left: auto;" onclick="deleteWorkReport('${report.id}')">
             <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete
           </button>
         </div>
       `;
       grid.appendChild(card);
+      applyReadMoreToggle(card);
     });
   } catch (error) {
     console.error('Error loading worker reports history:', error);
@@ -794,9 +846,7 @@ function renderGroupedReports(reports) {
       const card = document.createElement('div');
       card.className = 'card glass report-card interactive';
       
-      const imageTag = report.imagePath 
-        ? `<img src="${escapeHtml(report.imagePath)}" class="report-image-preview" alt="Attached proof of work" onclick="zoomImage('${escapeHtml(report.imagePath)}', 'Submitted by ${escapeHtml(report.employeeName)} (${escapeHtml(report.department)})')">`
-        : '';
+      const imageTag = renderReportImages(report.imagePath, `Submitted by ${report.employeeName} (${report.department})`);
 
       const formattedDate = new Date(report.createdAt).toLocaleString(undefined, {
         month: 'short',
@@ -828,6 +878,7 @@ function renderGroupedReports(reports) {
         </div>
       `;
       innerGrid.appendChild(card);
+      applyReadMoreToggle(card);
     });
 
     accordionContent.appendChild(innerGrid);
@@ -854,6 +905,13 @@ async function loadDepartmentsTable() {
       tr.innerHTML = `
         <td><strong>${escapeHtml(dept)}</strong></td>
         <td><span class="status-pill active">Active</span></td>
+        <td style="text-align: right;">
+          <div class="action-buttons-cell">
+            <button class="table-btn delete-btn" onclick="deleteDepartment('${escapeHtml(dept)}')">
+              <i data-lucide="trash-2"></i> Delete
+            </button>
+          </div>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -1165,6 +1223,108 @@ async function deleteWorkReport(id) {
 window.openEditWorkerModal = openEditWorkerModal;
 window.deleteWorkerAccount = deleteWorkerAccount;
 window.deleteWorkReport = deleteWorkReport;
+window.deleteDepartment = deleteDepartment;
+
+async function deleteDepartment(name) {
+  if (!confirm(`Are you sure you want to delete the department "${name}"?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/departments/${encodeURIComponent(name)}`, {
+      method: 'DELETE'
+    });
+
+    if (res.ok) {
+      await loadDepartmentsTable();
+      await loadDepartments(); // Refresh dropdown list options throughout app
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to delete department.');
+    }
+  } catch (error) {
+    console.error('Error deleting department:', error);
+    alert('Server communication error. Please try again.');
+  }
+}
+
+function renderReportImages(imagePath, titleText) {
+  if (!imagePath) return '';
+  
+  let images = [];
+  if (Array.isArray(imagePath)) {
+    images = imagePath;
+  } else if (typeof imagePath === 'string') {
+    try {
+      if (imagePath.startsWith('[')) {
+        images = JSON.parse(imagePath);
+      } else {
+        images = [imagePath];
+      }
+    } catch (e) {
+      images = [imagePath];
+    }
+  } else {
+    images = [imagePath];
+  }
+
+  // Filter out any empty entries
+  images = images.filter(img => img && typeof img === 'string' && img.trim() !== '');
+
+  if (images.length === 0) return '';
+
+  if (images.length === 1) {
+    const imgUrl = images[0];
+    return `<img src="${escapeHtml(imgUrl)}" class="report-image-preview" alt="Attached proof of work" onclick="zoomImage('${escapeHtml(imgUrl)}', '${escapeHtml(titleText)}')">`;
+  }
+
+  // Gallery view
+  let galleryHtml = `<div class="report-gallery">`;
+  images.forEach(imgUrl => {
+    galleryHtml += `<img src="${escapeHtml(imgUrl)}" class="report-gallery-img" alt="Attached proof of work" onclick="zoomImage('${escapeHtml(imgUrl)}', '${escapeHtml(titleText)}')">`;
+  });
+  galleryHtml += `</div>`;
+  return galleryHtml;
+}
+
+function applyReadMoreToggle(cardElement) {
+  const contentEl = cardElement.querySelector('.report-content');
+  if (!contentEl) return;
+
+  // Defer height evaluation until the element is mounted in the document DOM
+  setTimeout(() => {
+    if (contentEl.scrollHeight > 180) {
+      const container = document.createElement('div');
+      container.className = 'report-content-container report-content-collapsed';
+      
+      // Wrap contentEl in container
+      contentEl.parentNode.insertBefore(container, contentEl);
+      container.appendChild(contentEl);
+
+      // Create Read More button
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'read-more-btn';
+      btn.innerHTML = `<i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i> Read More`;
+      
+      // Insert button right after container
+      container.parentNode.insertBefore(btn, container.nextSibling);
+
+      btn.addEventListener('click', () => {
+        const isCollapsed = container.classList.contains('report-content-collapsed');
+        if (isCollapsed) {
+          container.classList.remove('report-content-collapsed');
+          btn.innerHTML = `<i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i> Read Less`;
+        } else {
+          container.classList.add('report-content-collapsed');
+          btn.innerHTML = `<i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i> Read More`;
+        }
+        lucide.createIcons();
+      });
+      lucide.createIcons();
+    }
+  }, 0);
+}
 
 // ==================== ANALYTICS DASHBOARD FUNCTIONS ====================
 

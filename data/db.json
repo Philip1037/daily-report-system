@@ -1,6 +1,24 @@
 {
   "reports": [
     {
+      "id": "1780859154011-387",
+      "employeeName": "Philip Test",
+      "department": "Engineering",
+      "content": "<p>This is the first paragraph of my report.</p><p>This is the second paragraph of my report, which contains some details.</p>",
+      "imagePath": null,
+      "submittedBy": "innovativesl",
+      "createdAt": "2026-06-07T19:05:54.011Z"
+    },
+    {
+      "id": "1780858926721-276",
+      "employeeName": "Philip",
+      "department": "Engineering",
+      "content": "<p><strong><u>This is the definitive, end-to-end development blueprint for your system. Since you are building</u></strong> </p><p><br></p><p><br></p><p>this as the project architect using <strong>Google Antigravity</strong>, we will structure this into six sequential development phases.</p><p>&lt;br&gt;</p><p>By following this precise order, you ensure that the database layer is stable before building the API logic, and that the API logic passes automated tests before you design the user interface.</p><p><strong>Phase 1: Environment Setup &amp; Project Architecture</strong></p><p>In this initial phase, you establish the foundation of your codebase. You will configure the project as a monorepo so that both your frontend and backend codes live in a single repository, making cloud deployment streamlined.</p><p><strong>1.Initialize the Monorepo Workspace:</strong>Estimated: 30 mins.</p><p>Open a clean directory in Antigravity and initialize the parent repository. Create a clean division between your client and server environments by running:</p><p>Bash</p><p>mkdir backend frontend</p><p>&lt;br&gt;</p><p>Navigate into the /backend folder. Initialize Node.js and install core packages: express, pg (PostgreSQL client), cors, dotenv, and jsonwebtoken. Set up a standard structural architecture:</p><p>Plaintext</p><p>backend/</p><p>├── config/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Database connection pools</p><p>├── controllers/ # Logic execution handlers</p><p>├── routes/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# API endpoints definitions</p><p>└── server.js&nbsp;&nbsp;&nbsp;# Entry point</p><p>&lt;br&gt;</p><p>&lt;br&gt;</p>",
+      "imagePath": "[\"/uploads/1780858926719-238469047.jpg\"]",
+      "submittedBy": "innovativesl",
+      "createdAt": "2026-06-07T19:02:06.721Z"
+    },
+    {
       "id": "1780815031349-534",
       "employeeName": "Philip",
       "department": "Engineering",

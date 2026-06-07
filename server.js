@@ -637,9 +637,33 @@ app.post('/api/departments', requireAuth('management'), async (req, res) => {
   }
 });
 
+// Delete department (Admin only)
+app.delete('/api/departments/:name', requireAuth('management'), async (req, res) => {
+  const deptName = req.params.name;
+  
+  if (useSupabase) {
+    try {
+      const { error } = await supabase.from('departments').delete().eq('name', deptName);
+      if (error) throw error;
+      res.json({ message: 'Department deleted successfully.' });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  } else {
+    const db = readDb();
+    const index = db.departments.findIndex(d => d.toLowerCase() === deptName.toLowerCase());
+    if (index === -1) {
+      return res.status(404).json({ error: 'Department not found.' });
+    }
+    db.departments.splice(index, 1);
+    writeDb(db);
+    res.json({ message: 'Department deleted successfully.', departments: db.departments });
+  }
+});
+
 // Submit report (Worker only)
 app.post('/api/reports', requireAuth('worker'), (req, res) => {
-  upload.single('reportImage')(req, res, async function (err) {
+  upload.array('reportImages', 5)(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: `Upload error: ${err.message}` });
     } else if (err) {
@@ -659,34 +683,38 @@ app.post('/api/reports', requireAuth('worker'), (req, res) => {
     }
 
     try {
-      let imagePath = null;
-      if (req.file) {
-        if (useSupabase) {
-          const fileExt = req.file.originalname.split('.').pop();
-          const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExt}`;
-          const { data, error: uploadError } = await supabase.storage
-            .from('report-images')
-            .upload(`uploads/${fileName}`, req.file.buffer, {
-              contentType: req.file.mimetype,
-            });
+      const imagePaths = [];
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          if (useSupabase) {
+            const fileExt = file.originalname.split('.').pop();
+            const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExt}`;
+            const { data, error: uploadError } = await supabase.storage
+              .from('report-images')
+              .upload(`uploads/${fileName}`, file.buffer, {
+                contentType: file.mimetype,
+              });
 
-          if (uploadError) throw uploadError;
+            if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage
-            .from('report-images')
-            .getPublicUrl(`uploads/${fileName}`);
-          imagePath = urlData.publicUrl;
-        } else {
-          imagePath = `/uploads/${req.file.filename}`;
+            const { data: urlData } = supabase.storage
+              .from('report-images')
+              .getPublicUrl(`uploads/${fileName}`);
+            imagePaths.push(urlData.publicUrl);
+          } else {
+            imagePaths.push(`/uploads/${file.filename}`);
+          }
         }
       }
+
+      const serializedImagePath = imagePaths.length > 0 ? JSON.stringify(imagePaths) : null;
 
       const newReport = {
         id: Date.now().toString() + '-' + Math.round(Math.random() * 1000),
         employeeName: employeeName.trim(),
         department: department.trim(),
         content: content.trim(),
-        imagePath: imagePath,
+        imagePath: serializedImagePath,
         submittedBy: req.session.user.username,
         createdAt: new Date().toISOString()
       };
@@ -764,14 +792,27 @@ app.delete('/api/reports/:id', requireAuth(), async (req, res) => {
       }
 
       if (report.imagePath) {
+        let images = [];
         try {
-          const urlParts = report.imagePath.split('/report-images/');
-          if (urlParts.length > 1) {
-            const storagePath = urlParts[1];
-            await supabase.storage.from('report-images').remove([storagePath]);
+          if (report.imagePath.startsWith('[')) {
+            images = JSON.parse(report.imagePath);
+          } else {
+            images = [report.imagePath];
           }
-        } catch (storageErr) {
-          console.error('Error deleting image from Supabase storage:', storageErr);
+        } catch (e) {
+          images = [report.imagePath];
+        }
+
+        for (const imgPath of images) {
+          try {
+            const urlParts = imgPath.split('/report-images/');
+            if (urlParts.length > 1) {
+              const storagePath = urlParts[1];
+              await supabase.storage.from('report-images').remove([storagePath]);
+            }
+          } catch (storageErr) {
+            console.error('Error deleting image from Supabase storage:', storageErr);
+          }
         }
       }
 
@@ -797,14 +838,27 @@ app.delete('/api/reports/:id', requireAuth(), async (req, res) => {
     }
 
     if (report.imagePath) {
-      const cleanedPath = report.imagePath.replace(/^\//, '');
-      const fullImagePath = path.join(__dirname, cleanedPath);
+      let images = [];
       try {
-        if (fs.existsSync(fullImagePath)) {
-          fs.unlinkSync(fullImagePath);
+        if (report.imagePath.startsWith('[')) {
+          images = JSON.parse(report.imagePath);
+        } else {
+          images = [report.imagePath];
         }
-      } catch (err) {
-        console.error('Error deleting image file:', err);
+      } catch (e) {
+        images = [report.imagePath];
+      }
+
+      for (const imgPath of images) {
+        const cleanedPath = imgPath.replace(/^\//, '');
+        const fullImagePath = path.join(__dirname, cleanedPath);
+        try {
+          if (fs.existsSync(fullImagePath)) {
+            fs.unlinkSync(fullImagePath);
+          }
+        } catch (err) {
+          console.error('Error deleting image file:', err);
+        }
       }
     }
 
@@ -815,8 +869,8 @@ app.delete('/api/reports/:id', requireAuth(), async (req, res) => {
   }
 });
 
-// Download report as PDF (Management only)
-app.get('/api/reports/:id/pdf', requireAuth('management'), async (req, res) => {
+// Download report as PDF (Management or original submitting worker)
+app.get('/api/reports/:id/pdf', requireAuth(), async (req, res) => {
   const reportId = req.params.id;
   let report = null;
 
@@ -834,6 +888,11 @@ app.get('/api/reports/:id/pdf', requireAuth('management'), async (req, res) => {
 
   if (!report) {
     return res.status(404).json({ error: 'Report not found.' });
+  }
+
+  // Authorization check: management can download any, worker can only download their own
+  if (req.session.user.role === 'worker' && report.submittedBy !== req.session.user.username) {
+    return res.status(403).json({ error: 'Forbidden. You can only download your own reports.' });
   }
 
   try {
@@ -890,16 +949,33 @@ app.get('/api/reports/:id/pdf', requireAuth('management'), async (req, res) => {
 
     // Image attachment
     if (report.imagePath) {
-      const imgBuffer = await getImageBuffer(report.imagePath);
-      if (imgBuffer) {
+      let images = [];
+      try {
+        if (report.imagePath.startsWith('[')) {
+          images = JSON.parse(report.imagePath);
+        } else {
+          images = [report.imagePath];
+        }
+      } catch (e) {
+        images = [report.imagePath];
+      }
+
+      if (images.length > 0) {
         doc.addPage();
         doc.fontSize(14).font('Helvetica-Bold').fillColor('#111827').text('Attached Proof of Work', { align: 'center' });
         doc.moveDown(1);
-        doc.image(imgBuffer, {
-          fit: [500, 400],
-          align: 'center',
-          valign: 'center'
-        });
+
+        for (const imgPath of images) {
+          const imgBuffer = await getImageBuffer(imgPath);
+          if (imgBuffer) {
+            doc.image(imgBuffer, {
+              fit: [500, 400],
+              align: 'center',
+              valign: 'center'
+            });
+            doc.moveDown(2.0);
+          }
+        }
       }
     }
 
@@ -912,8 +988,8 @@ app.get('/api/reports/:id/pdf', requireAuth('management'), async (req, res) => {
   }
 });
 
-// Download report as Word DOCX (Management only)
-app.get('/api/reports/:id/docx', requireAuth('management'), async (req, res) => {
+// Download report as Word DOCX (Management or original submitting worker)
+app.get('/api/reports/:id/docx', requireAuth(), async (req, res) => {
   const reportId = req.params.id;
   let report = null;
 
@@ -931,6 +1007,11 @@ app.get('/api/reports/:id/docx', requireAuth('management'), async (req, res) => 
 
   if (!report) {
     return res.status(404).json({ error: 'Report not found.' });
+  }
+
+  // Authorization check: management can download any, worker can only download their own
+  if (req.session.user.role === 'worker' && report.submittedBy !== req.session.user.username) {
+    return res.status(403).json({ error: 'Forbidden. You can only download your own reports.' });
   }
 
   try {
@@ -1005,8 +1086,18 @@ app.get('/api/reports/:id/docx', requireAuth('management'), async (req, res) => 
     docChildren.push(...convertHtmlToDocxParagraphs(report.content));
 
     if (report.imagePath) {
-      const imgBuffer = await getImageBuffer(report.imagePath);
-      if (imgBuffer) {
+      let images = [];
+      try {
+        if (report.imagePath.startsWith('[')) {
+          images = JSON.parse(report.imagePath);
+        } else {
+          images = [report.imagePath];
+        }
+      } catch (e) {
+        images = [report.imagePath];
+      }
+
+      if (images.length > 0) {
         docChildren.push(
           new docx.Paragraph({
             children: [
@@ -1014,20 +1105,29 @@ app.get('/api/reports/:id/docx', requireAuth('management'), async (req, res) => 
             ],
             spacing: { before: 300, after: 150 },
             pageBreakBefore: true
-          }),
-          new docx.Paragraph({
-            children: [
-              new docx.ImageRun({
-                data: imgBuffer,
-                transformation: {
-                  width: 500,
-                  height: 375
-                }
-              })
-            ],
-            alignment: docx.AlignmentType.CENTER
           })
         );
+
+        for (const imgPath of images) {
+          const imgBuffer = await getImageBuffer(imgPath);
+          if (imgBuffer) {
+            docChildren.push(
+              new docx.Paragraph({
+                children: [
+                  new docx.ImageRun({
+                    data: imgBuffer,
+                    transformation: {
+                      width: 500,
+                      height: 375
+                    }
+                  })
+                ],
+                alignment: docx.AlignmentType.CENTER,
+                spacing: { after: 200 }
+              })
+            );
+          }
+        }
       }
     }
 
