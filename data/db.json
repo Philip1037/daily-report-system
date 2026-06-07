@@ -1,0 +1,39 @@
+{
+  "reports": [
+    {
+      "id": "1780815031349-534",
+      "employeeName": "Philip",
+      "department": "Engineering",
+      "content": "buy book",
+      "imagePath": "/uploads/1780815031341-376880615.jpeg",
+      "submittedBy": "innovativesl",
+      "createdAt": "2026-06-07T06:50:31.349Z"
+    }
+  ],
+  "departments": [
+    "Engineering",
+    "Sales",
+    "HR",
+    "Marketing",
+    "Finance",
+    "Operations",
+    "Customer Support"
+  ],
+  "users": [
+    {
+      "username": "innovativesl",
+      "password": "innovative1037",
+      "role": "worker"
+    },
+    {
+      "username": "admin",
+      "password": "admin1037",
+      "role": "management"
+    },
+    {
+      "username": "philip",
+      "password": "1037",
+      "role": "worker"
+    }
+  ]
+}

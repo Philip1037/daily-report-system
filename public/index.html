@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Report Command Center</title>
+  
+  <!-- Font Integration -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Quill Rich Text Editor CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Styling Sheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Glow Orbs for Premium Aesthetic -->
+  <div class="glow-orb glow-orb-1"></div>
+  <div class="glow-orb glow-orb-2"></div>
+
+  <!-- ==================== LOGIN VIEW ==================== -->
+  <div id="login-container" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-box">
+          <img src="logo.png" alt="InnovativeSL Logo" class="company-logo">
+        </div>
+        <h1>Daily Report Command Center</h1>
+        <p>Enter your credentials to access the system</p>
+      </div>
+
+      <div class="login-tabs">
+        <button type="button" class="tab-btn active" id="tab-worker">
+          <i data-lucide="user"></i> Worker Portal
+        </button>
+        <button type="button" class="tab-btn" id="tab-management">
+          <i data-lucide="shield-check"></i> Management
+        </button>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <div class="input-group">
+          <label for="username"><i data-lucide="user-check"></i> Username</label>
+          <input type="text" id="username" placeholder="e.g. innovativesl" required autocomplete="username">
+        </div>
+        
+        <div class="input-group">
+          <label for="password"><i data-lucide="lock"></i> Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" id="toggle-password" class="password-toggle-btn">
+              <i data-lucide="eye" id="password-eye-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="login-error" class="error-banner hidden">
+          <i data-lucide="alert-triangle"></i>
+          <span id="login-error-text">Invalid credentials.</span>
+        </div>
+
+        <button type="submit" class="submit-btn" id="btn-login-submit">
+          <span>Sign In</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <p>Default credentials are configured in system backend</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN DASHBOARD CONTAINER ==================== -->
+  <div id="app-container" class="app-layout hidden">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-logo">
+            <img src="logo.png" alt="InnovativeSL Logo" class="sidebar-logo">
+          </div>
+          <span class="brand-name">InnovativeSL</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Worker Nav items -->
+        <div id="nav-worker-group" class="nav-group">
+          <button class="nav-item active" id="nav-submit-report">
+            <i data-lucide="file-text"></i>
+            <span>Submit Report</span>
+          </button>
+          <button class="nav-item" id="nav-worker-history">
+            <i data-lucide="history"></i>
+            <span>My History</span>
+          </button>
+        </div>
+
+        <!-- Management Nav items -->
+        <div id="nav-management-group" class="nav-group hidden">
+          <button class="nav-item active" id="nav-all-reports">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Reports Feed</span>
+          </button>
+          <button class="nav-item" id="nav-analytics">
+            <i data-lucide="bar-chart-3"></i>
+            <span>Analytics</span>
+          </button>
+          <button class="nav-item" id="nav-manage-depts">
+            <i data-lucide="settings"></i>
+            <span>Departments</span>
+          </button>
+          <button class="nav-item" id="nav-manage-users">
+            <i data-lucide="user-cog"></i>
+            <span>Manage Accounts</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="avatar" id="user-avatar">W</div>
+          <div class="user-info">
+            <h4 id="user-display-name">Worker</h4>
+            <span id="user-display-role">Role</span>
+          </div>
+        </div>
+        <button id="btn-logout" class="logout-btn" title="Log Out">
+          <i data-lucide="log-out"></i>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <main class="main-content">
+      
+      <!-- TOP HEADER -->
+      <header class="main-header">
+        <div class="header-left">
+          <h2 id="view-title">Submit Daily Report</h2>
+          <p id="view-subtitle" class="text-muted">Fill out your daily tasks accomplished</p>
+        </div>
+        <div class="header-right">
+          <div class="date-widget">
+            <i data-lucide="calendar"></i>
+            <span id="header-date">June 7, 2026</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ==================== VIEW: SUBMIT REPORT (WORKER) ==================== -->
+      <section id="view-submit-report-section" class="content-section">
+        <div class="section-layout">
+          <!-- Submission Form -->
+          <div class="form-container card glass">
+            <form id="report-form" enctype="multipart/form-data">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="employeeName"><i data-lucide="user"></i> Full Name</label>
+                  <input type="text" id="employeeName" placeholder="Enter your full name" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                  <label for="department"><i data-lucide="users"></i> Department</label>
+                  <div class="select-wrapper">
+                    <select id="department" required>
+                      <option value="" disabled selected>Select Department</option>
+                      <!-- Populated via JS -->
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label><i data-lucide="align-left"></i> Today's Accomplishments & Tasks Done</label>
+                <!-- Quill Editor replacing standard textarea -->
+                <div id="reportContent"></div>
+              </div>
+
+              <div class="form-group">
+                <label><i data-lucide="image"></i> Attach Image (Optional)</label>
+                <div id="dropzone" class="dropzone">
+                  <input type="file" id="reportImage" accept="image/*" class="file-input">
+                  <div class="dropzone-prompt">
+                    <i data-lucide="upload-cloud" class="upload-icon"></i>
+                    <p class="drop-text-primary">Drag & drop files or <span>browse</span></p>
+                    <p class="drop-text-secondary">PNG, JPG, JPEG or GIF up to 5MB</p>
+                  </div>
+                  <div id="file-preview-container" class="file-preview hidden">
+                    <img id="image-preview" src="#" alt="Preview">
+                    <button type="button" id="btn-remove-file" class="remove-file-btn">
+                      <i data-lucide="x"></i>
+                    </button>
+                    <span id="file-name-text">filename.png</span>
+                  </div>
+                </div>
+              </div>
+
+              <div id="submit-error" class="error-banner hidden">
+                <i data-lucide="alert-circle"></i>
+                <span id="submit-error-text">Failed to submit.</span>
+              </div>
+              <div id="submit-success" class="success-banner hidden">
+                <i data-lucide="check-circle2"></i>
+                <span>Report submitted successfully!</span>
+              </div>
+
+              <button type="submit" class="submit-btn full-width" id="btn-report-submit">
+                <span>Submit Daily Report</span>
+                <i data-lucide="send"></i>
+              </button>
+            </form>
+          </div>
+
+          <!-- Helper sidebar widget (Tips/Instructions) -->
+          <div class="tips-container">
+            <div class="card glass status-widget">
+              <h3>Today's Status</h3>
+              <div class="status-indicator-box">
+                <div class="status-pulse" id="status-dot"></div>
+                <span id="status-text">Not submitted today</span>
+              </div>
+              <p class="text-muted">Daily reports must be submitted by the end of your shift.</p>
+            </div>
+            
+            <div class="card glass instruction-card">
+              <h3>Reporting Guidelines</h3>
+              <ul>
+                <li><i data-lucide="check-square"></i> Be descriptive yet concise about your output.</li>
+                <li><i data-lucide="image"></i> Attach screenshots/images of completed work if possible.</li>
+                <li><i data-lucide="help-circle"></i> Highlight any blockages or help required from management.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: WORKER HISTORY ==================== -->
+      <section id="view-worker-history-section" class="content-section hidden">
+        <div class="history-controls">
+          <h3>Your Submission History</h3>
+        </div>
+        <div id="worker-reports-list" class="reports-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: MANAGEMENT REPORTS FEED ==================== -->
+      <section id="view-all-reports-section" class="content-section hidden">
+        
+        <!-- Metrics Stats Strip -->
+        <div class="metrics-grid">
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-blue">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Active Departments</span>
+              <h3 class="metric-value" id="stats-active-depts">0</h3>
+            </div>
+          </div>
+
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-green">
+              <i data-lucide="file-check"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Total Submissions</span>
+              <h3 class="metric-value" id="stats-total-reports">0</h3>
+            </div>
+          </div>
+
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-purple">
+              <i data-lucide="calendar-days"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Submissions Today</span>
+              <h3 class="metric-value" id="stats-today-reports">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="card glass filter-panel">
+          <div class="filter-row">
+            <div class="filter-group flex-2">
+              <label for="search-filter"><i data-lucide="search"></i> Search Reports</label>
+              <input type="text" id="search-filter" placeholder="Search by worker name, tasks, keyword...">
+            </div>
+
+            <div class="filter-group">
+              <label for="dept-filter"><i data-lucide="filter"></i> Department</label>
+              <select id="dept-filter">
+                <option value="">All Departments</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="date-filter"><i data-lucide="calendar"></i> Specific Date</label>
+              <input type="date" id="date-filter">
+            </div>
+
+            <div class="filter-group align-end">
+              <button id="btn-clear-filters" class="secondary-btn" title="Reset Filters">
+                <i data-lucide="rotate-ccw"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Department Grouped Reports Feed -->
+        <div id="management-reports-container" class="department-reports-feed">
+          <!-- Grouped accordion sections render here -->
+        </div>
+
+      </section>
+
+      <!-- ==================== VIEW: ANALYTICS DASHBOARD ==================== -->
+      <section id="view-analytics-section" class="content-section hidden">
+        
+        <!-- Analytics Controls / Filters -->
+        <div class="card glass filter-panel" style="margin-bottom: 1.5rem;">
+          <div class="filter-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div class="filter-group">
+              <label style="margin-bottom: 6px;"><i data-lucide="clock"></i> Time Period</label>
+              <div class="time-filter-buttons" style="display: flex; gap: 8px;">
+                <button type="button" class="secondary-btn active" id="btn-analytics-7d">Last 7 Days</button>
+                <button type="button" class="secondary-btn" id="btn-analytics-30d">Last 30 Days</button>
+                <button type="button" class="secondary-btn" id="btn-analytics-all">All Time</button>
+              </div>
+            </div>
+            <div class="filter-group" style="min-width: 220px;">
+              <label for="analytics-dept-filter" style="margin-bottom: 6px;"><i data-lucide="filter"></i> Department Filter</label>
+              <div class="select-wrapper">
+                <select id="analytics-dept-filter">
+                  <option value="">All Departments</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Overview Statistics Cards -->
+        <div class="metrics-grid" id="analytics-metrics-grid" style="margin-bottom: 1.5rem;">
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-blue">
+              <i data-lucide="file-text"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Total Reports</span>
+              <h3 class="metric-value" id="analytics-total-reports">0</h3>
+            </div>
+          </div>
+
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-purple">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Active Workers</span>
+              <h3 class="metric-value" id="analytics-active-workers">0</h3>
+            </div>
+          </div>
+
+          <div class="card glass metric-card">
+            <div class="metric-icon bg-green">
+              <i data-lucide="award"></i>
+            </div>
+            <div class="metric-details">
+              <span class="metric-label">Top Department</span>
+              <h3 class="metric-value" id="analytics-top-dept">-</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid Layout -->
+        <div class="analytics-grid">
+          <!-- Submission Trend Chart -->
+          <div class="card glass chart-card span-2">
+            <div class="chart-header">
+              <h3><i data-lucide="trending-up"></i> Submission Trend</h3>
+              <p class="text-muted">Daily number of completed reports</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-submission-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- Department Share Doughnut -->
+          <div class="card glass chart-card">
+            <div class="chart-header">
+              <h3><i data-lucide="pie-chart"></i> Department Breakdown</h3>
+              <p class="text-muted">Report submissions distribution</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-dept-distribution"></canvas>
+            </div>
+          </div>
+
+          <!-- Weekly Density Bar Chart -->
+          <div class="card glass chart-card">
+            <div class="chart-header">
+              <h3><i data-lucide="calendar"></i> Weekly Distribution</h3>
+              <p class="text-muted">Submissions by weekday</p>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-weekly-density"></canvas>
+            </div>
+          </div>
+
+          <!-- Top Workers Leaderboard Card -->
+          <div class="card glass chart-card span-2" style="grid-column: 1 / -1;">
+            <div class="chart-header">
+              <h3><i data-lucide="trophy"></i> Active Workers Leaderboard</h3>
+              <p class="text-muted">Most active reporters in selected period</p>
+            </div>
+            <div class="table-wrapper" style="margin-top: 1rem; overflow-x: auto;">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Worker Name</th>
+                    <th>Department</th>
+                    <th>Reports Submitted</th>
+                    <th style="text-align: right;">Contribution Ratio</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-leaderboard-body">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================== VIEW: DEPARTMENTS MANAGEMENT ==================== -->
+      <section id="view-manage-depts-section" class="content-section hidden">
+        <div class="section-layout">
+          
+          <!-- Add Department Card -->
+          <div class="card glass max-w-md">
+            <h3>Add New Department</h3>
+            <p class="text-muted pb-3">Extend the organization's department list</p>
+            <form id="add-dept-form">
+              <div class="form-group">
+                <label for="new-dept-name">Department Name</label>
+                <input type="text" id="new-dept-name" placeholder="e.g. Quality Assurance" required>
+              </div>
+              <div id="dept-error" class="error-banner hidden">
+                <i data-lucide="alert-circle"></i>
+                <span id="dept-error-text">Failed to add department.</span>
+              </div>
+              <div id="dept-success" class="success-banner hidden">
+                <i data-lucide="check-circle2"></i>
+                <span>Department added successfully!</span>
+              </div>
+              <button type="submit" class="submit-btn full-width">
+                <span>Register Department</span>
+                <i data-lucide="plus"></i>
+              </button>
+            </form>
+          </div>
+
+          <!-- Existing Departments Card -->
+          <div class="card glass flex-1">
+            <h3>Registered Departments</h3>
+            <p class="text-muted pb-3">Active departments currently reporting in the system</p>
+            <div class="table-wrapper">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Department Name</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="departments-list-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== VIEW: MANAGE USERS ==================== -->
+      <section id="view-manage-users-section" class="content-section hidden">
+        
+        <!-- Admin Settings Card & Create Worker Card Grid -->
+        <div class="section-layout">
+          
+          <div class="form-container">
+            <!-- Edit Admin Credentials Card -->
+            <div class="card glass">
+              <h3>Admin Settings</h3>
+              <p class="text-muted pb-3">Update your management account username and password</p>
+              <form id="update-admin-form">
+                <div class="form-group">
+                  <label for="admin-username">Admin Username</label>
+                  <input type="text" id="admin-username" required>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="admin-password">New Password (leave empty to keep current)</label>
+                  <div class="password-wrapper">
+                    <input type="password" id="admin-password" placeholder="••••••••">
+                    <button type="button" id="toggle-admin-password" class="password-toggle-btn">
+                      <i data-lucide="eye" id="admin-password-eye-icon"></i>
+                    </button>
+                  </div>
+                </div>
+                <div id="admin-error" class="error-banner hidden" style="margin-top: 10px;">
+                  <i data-lucide="alert-circle"></i>
+                  <span id="admin-error-text">Failed to update credentials.</span>
+                </div>
+                <div id="admin-success" class="success-banner hidden" style="margin-top: 10px;">
+                  <i data-lucide="check-circle2"></i>
+                  <span>Admin credentials updated successfully!</span>
+                </div>
+                <button type="submit" class="submit-btn full-width" style="margin-top: 15px;">
+                  <span>Update Admin Account</span>
+                  <i data-lucide="save"></i>
+                </button>
+              </form>
+            </div>
+
+            <!-- Add Worker Card -->
+            <div class="card glass">
+              <h3>Create Worker Account</h3>
+              <p class="text-muted pb-3">Register a new worker with separate report history</p>
+              <form id="create-worker-form">
+                <div class="form-group">
+                  <label for="worker-username">Worker Username</label>
+                  <input type="text" id="worker-username" placeholder="e.g. james" required>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                  <label for="worker-password">Password</label>
+                  <div class="password-wrapper">
+                    <input type="password" id="worker-password" placeholder="••••••••" required>
+                    <button type="button" id="toggle-worker-password" class="password-toggle-btn">
+                      <i data-lucide="eye" id="worker-password-eye-icon"></i>
+                    </button>
+                  </div>
+                </div>
+                <div id="worker-error" class="error-banner hidden" style="margin-top: 10px;">
+                  <i data-lucide="alert-circle"></i>
+                  <span id="worker-error-text">Failed to add worker.</span>
+                </div>
+                <div id="worker-success" class="success-banner hidden" style="margin-top: 10px;">
+                  <i data-lucide="check-circle2"></i>
+                  <span>Worker account created successfully!</span>
+                </div>
+                <button type="submit" class="submit-btn full-width" style="margin-top: 15px;">
+                  <span>Register Worker</span>
+                  <i data-lucide="user-plus"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Existing Workers Card -->
+          <div class="card glass flex-1">
+            <h3>Registered Workers</h3>
+            <p class="text-muted pb-3">Active workers in the reporting system</p>
+            <div class="table-wrapper">
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-list-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== DIALOG/MODALS ==================== -->
+  
+  <!-- Image Zoom Modal -->
+  <div id="image-modal" class="modal">
+    <span class="modal-close" id="btn-close-modal">&times;</span>
+    <img class="modal-content" id="modal-zoomed-image" alt="Zoomed view">
+    <div id="modal-caption" class="modal-caption">Caption text</div>
+  </div>
+
+  <!-- User Edit Modal -->
+  <div id="user-edit-modal" class="modal">
+    <div class="modal-form-card">
+      <span class="modal-close" id="btn-close-user-modal">&times;</span>
+      <h3>Edit Worker Credentials</h3>
+      <p class="text-muted pb-3">Update username or reset password for this worker</p>
+      
+      <form id="edit-worker-form">
+        <input type="hidden" id="edit-worker-target-username">
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="edit-worker-username">Username</label>
+          <input type="text" id="edit-worker-username" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="edit-worker-password">New Password (leave empty to keep current)</label>
+          <div class="password-wrapper">
+            <input type="password" id="edit-worker-password" placeholder="••••••••">
+            <button type="button" id="toggle-edit-worker-password" class="password-toggle-btn">
+              <i data-lucide="eye" id="edit-worker-password-eye-icon"></i>
+            </button>
+          </div>
+        </div>
+        <div id="edit-worker-error" class="error-banner hidden" style="margin-bottom: 1.25rem;">
+          <i data-lucide="alert-circle"></i>
+          <span id="edit-worker-error-text">Failed to update worker.</span>
+        </div>
+        <button type="submit" class="submit-btn full-width">
+          <span>Save Changes</span>
+          <i data-lucide="check"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Client-side Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
